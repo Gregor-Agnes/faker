@@ -16,6 +16,7 @@ class Relation implements PropertyInterface
             'pid' => isset($configuration['pid']) ? $configuration['pid'] : 'current',
             'min' => $configuration['min'] ?? 0,
             'max' => $configuration['max'] ?? 99,
+            'uid' => $configuration['uid'] ?? null,
         ];
     }
 
@@ -28,23 +29,41 @@ class Relation implements PropertyInterface
     protected function getRelationUids(array $configuration)
     {
         $table = $configuration['table'];
-
-        /** @var \TYPO3\CMS\Core\Database\Query\QueryBuilder$queryBuilder */
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
-        $queryBuilder->select('uid')->from($table)->where(
-            $queryBuilder->expr()->eq('pid', (int)$configuration['pid'])
-        );
-        $rows= $queryBuilder->execute();
-
-        $list = [];
-        foreach ($rows->fetchAllAssociative() as $row) {
-            $list[] = $row['uid'];
+        
+        if ( isset($configuration['uid']) ) {
+            /** @var \TYPO3\CMS\Core\Database\Query\QueryBuilder$queryBuilder */
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
+            $queryBuilder->select('uid')->from($table)->where(
+                $queryBuilder->expr()->eq('uid', (int)$configuration['uid'])
+            );
+            $rows = $queryBuilder->executeQuery();
+            
+            foreach ($rows->fetchAllAssociative() as $row) {
+                $list[] = $row['uid'];
+            }
+            
+            return $list;
+            
+        } else {
+            
+            /** @var \TYPO3\CMS\Core\Database\Query\QueryBuilder$queryBuilder */
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
+            $queryBuilder->select('uid')->from($table)->where(
+                $queryBuilder->expr()->eq('pid', (int)$configuration['pid'])
+            );
+            $rows= $queryBuilder->executeQuery();
+            
+            $list = [];
+            foreach ($rows->fetchAllAssociative() as $row) {
+                $list[] = $row['uid'];
+            }
+            $randList = $this->array_random($list, rand($configuration['min'], $configuration['max']));
+            if (is_array($randList)) {
+                return implode(',', $randList);
+            }
+            return '';
         }
-        $randList = $this->array_random($list, rand($configuration['min'], $configuration['max']));
-        if (is_array($randList)) {
-            return implode(',', $randList);
-        }
-        return '';
+        
     }
 
     /**
@@ -62,7 +81,9 @@ class Relation implements PropertyInterface
 
         $r = array();
         for ($i = 0; $i < $num; $i++) {
-            $r[] = $arr[$i];
+            if (isset($arr[$i])) {
+                $r[] = $arr[$i];
+            }
         }
         return $r;
     }
