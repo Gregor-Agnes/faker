@@ -54,7 +54,7 @@ class ReplaceRunner implements SingletonInterface
             $queryBuilder->where($queryBuilder->expr()->eq('pid', $this->pid));
         }
 
-        $records = $queryBuilder->execute();
+        $records = $queryBuilder->executeQuery()->fetchAllAssociative();
 
         $dataMap = [];
         foreach ($records as $record) {
